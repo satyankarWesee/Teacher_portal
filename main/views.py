@@ -7,25 +7,42 @@ from .forms import StudentForm
 
 def login_view(request):
     if request.method == "POST":
-        username = request.POST["username"]
-        password = request.POST["password"]
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            return redirect('dashboard')
-        else:
-            messages.error(request, "Invalid credentials")
+        try:
+            username = request.POST.get("username")
+            password = request.POST.get("password")
+            if not username or not password:
+                messages.error(request, "Username and password are required.")
+                return render(request, 'main/login.html')
+
+            user = authenticate(request, username=username, password=password)
+            if user:
+                login(request, user)
+                return redirect('dashboard')
+            else:
+                messages.error(request, "Invalid credentials")
+        except Exception as e:
+            messages.error(request, "An unexpected error occurred. Please try again.")
     return render(request, 'main/login.html')
 
 @login_required
 def dashboard(request):
-    students = Student.objects.all()
-    form = StudentForm()
+    try:
+        students = Student.objects.all()
+        form = StudentForm()
+    except Exception as e:
+        messages.error(request, "Failed to load student data. Please try again later.")
+        students = []
+        form = StudentForm()
+    
     return render(request, 'main/dashboard.html', {'students': students, 'form': form})
 
 @login_required
 def logout_view(request):
-    logout(request)
+    try:
+        logout(request)
+        messages.success(request, "You have been logged out successfully.")
+    except Exception as e:
+        messages.error(request, "An error occurred during logout. Please try again.")
     return redirect('login')
 
 @login_required
@@ -80,12 +97,10 @@ def edit_student(request, id):
             messages.error(request, "Marks must be a number.")
             return redirect('dashboard')
 
-        # Check for duplicate (but ignore current object)
         if Student.objects.filter(name=name, subject=subject).exclude(id=student.id).exists():
             messages.error(request, f"A student with the name '{name}' and subject '{subject}' already exists.")
             return redirect('dashboard')
 
-        # Safe to update
         student.name = name
         student.subject = subject
         student.marks = marks
@@ -97,6 +112,10 @@ def edit_student(request, id):
 
 @login_required
 def delete_student(request, id):
-    student = get_object_or_404(Student, id=id)
-    student.delete()
+    try:
+        student = get_object_or_404(Student, id=id)
+        student.delete()
+        messages.success(request, "Student deleted successfully.")
+    except Exception as e:
+        messages.error(request, "Failed to delete student. Please try again.")
     return redirect('dashboard')
