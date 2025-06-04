@@ -38,12 +38,6 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-If you're in development and need additional tools:
-
-```bash
-pip install -r requirements_dev.txt
-```
-
 ### 4. Apply Migrations
 
 Run the database migrations:
